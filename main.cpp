@@ -5,9 +5,12 @@
 
 using namespace std;
 
+int player_score = 0;
+int cpu_score = 0;
+
 class Ball { 
     public: 
-    int x, y;
+    float x, y;
     int speed_x, speed_y;
     int radius;
 
@@ -30,9 +33,20 @@ class Ball {
 };
 
 class Paddle {
+    protected:
+    void WallCollision() {
+        if (y + height >= GetScreenHeight()) {
+            y = GetScreenHeight() - height;
+        }
+
+        if (y <= 0) {
+            y = 0;
+        }
+    }
+
     public:
-    int x, y; // top left corner of paddle
-    int width, height;
+    float x, y; // top left corner of paddle
+    float width, height;
     int speed;
 
     void Draw() {
@@ -48,18 +62,29 @@ class Paddle {
             y += speed;
         }
 
-        if (y + height >= GetScreenHeight()) {
-            y = GetScreenHeight() - height;
+        WallCollision();
+    }
+};
+
+class CpuPaddle: public Paddle {
+    public:
+
+    void Update(int ball_y) {
+        if (y + height/2 > ball_y) {
+            y -= speed;
         }
 
-        if (y <= 0) {
-            y = 0;
+        if (y + height/2 <= ball_y) {
+            y += speed;
         }
+
+        WallCollision();
     }
 };
 
 Ball ball;
 Paddle player;
+CpuPaddle cpu;
 
 int main() {
     cout << "Starting the game!" << endl;
@@ -77,25 +102,42 @@ int main() {
     ball.speed_x = 5;
     ball.speed_y = 5;
 
-    // initialize paddle
+    // initialize paddles
     player.width = 25;
     player.height = 120;
     player.x = WIDTH - player.width - 10;
     player.y = HEIGHT/2 - player.height/2;
     player.speed = 6;
 
+    cpu.width = 25;
+    cpu.height = 120;
+    cpu.x = 10;
+    cpu.y = HEIGHT/2 - cpu.height/2;
+    cpu.speed = 6;
+
     while (WindowShouldClose() == false) {
         BeginDrawing();
 
+        // Update elements
         ball.Update();
         player.Update();
+        cpu.Update(ball.y);
+
+        // Check for collision
+        if (CheckCollisionCircleRec(Vector2{ball.x, ball.y}, ball.radius, Rectangle{player.x, player.y, player.width, player.height})) {
+            ball.speed_x *= -1;
+        }
+
+        if (CheckCollisionCircleRec(Vector2{ball.x, ball.y}, ball.radius, Rectangle{cpu.x, cpu.y, cpu.width, cpu.height})) {
+            ball.speed_x *= -1;
+        }
 
         // Drawing
         ClearBackground(BLACK); // must clear every time we draw or it will leave trace
         DrawLine(WIDTH/2, 0, WIDTH/2, HEIGHT, WHITE);
         ball.Draw();
         player.Draw();
-        DrawRectangle(10, HEIGHT/2 - 60, 25, 120, WHITE);
+        cpu.Draw();
 
         EndDrawing();
     }
